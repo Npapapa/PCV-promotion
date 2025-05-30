@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bốc Thăm Trúng Thưởng</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico"> <!-- Thêm favicon -->
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f9fafc;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 420px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px #0001;
+      padding: 32px 20px 24px 20px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      font-weight: 500;
+      margin-bottom: 4px;
+      display: block;
+      color: #555;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 18px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background-color: #ff7f50;
+      color: #fff;
+      border: none;
+      padding: 14px 0;
+      width: 100%;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #ff6347;
+    }
+    .result {
+      text-align: center;
+      margin-top: 24px;
+      padding: 18px 16px;
+      background: #e6ffe6;
+      border-radius: 8px;
+      font-size: 20px;
+      color: #028c2f;
+      font-weight: bold;
+    }
+    .error {
+      color: #d32f2f;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bốc Thăm Trúng Thưởng</h1>
+    <p style="text-align:center; margin-bottom:24px;">
+      Mua hóa đơn từ <b>200.000 VND</b> được bốc thăm nhận quà!<br>
+      <i>Nhập thông tin để tham gia.</i>
+    </p>
+    <form id="luckyForm" autocomplete="off">
+      <div class="error" id="errorMsg"></div>
+      <label for="amount">Giá trị đơn hàng (VND)</label>
+      <input type="number" id="amount" name="amount" required min="200000" placeholder="Ví dụ: 250000">
+
+      <label for="name">Họ và tên</label>
+      <input type="text" id="name" name="name" required placeholder="Nguyễn Văn A">
+
+      <label for="district">Địa chỉ (Quận)</label>
+      <input type="text" id="district" name="district" required placeholder="Quận 1">
+
+      <label for="phone">Số điện thoại</label>
+      <input type="tel" id="phone" name="phone" required pattern="^0\d{9}$" placeholder="0987654321">
+
+      <button type="submit" id="submitBtn">Bốc thăm</button>
+    </form>
+    <div id="result" class="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    const PRIZES = [
+      { name: 'Lược trải lông', key: 'luoc', total: 2 },
+      { name: 'Đồ chơi', key: 'dochoi', total: 4 },
+      { name: '1 gói pate', key: 'pate', total: 10 },
+      { name: '2 thanh creamy treat', key: 'creamy', total: 40 }
+    ];
+
+    const scriptURL = 'https://script.google.com/macros/s/AKfycby0Li2IdttsHNOhUYMqn3EBuPdyTc18t0hNLuy2j-VrmdCx3zuJEPSzE5RJV85YZFSQXQ/exec';
+
+    function getPrizeLeft() {
+      return JSON.parse(localStorage.getItem('prize_left')) || PRIZES.reduce((acc, p) => {
+        acc[p.key] = p.total;
+        return acc;
+      }, {});
+    }
+
+    function setPrizeLeft(left) {
+      localStorage.setItem('prize_left', JSON.stringify(left));
+    }
+
+    function drawPrize() {
+      let left = getPrizeLeft();
+      let available = PRIZES.filter(p => left[p.key] > 0);
+      if (available.length === 0) return null;
+      let idx = Math.floor(Math.random() * available.length);
+      return available[idx];
+    }
+
+    document.getElementById('luckyForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      document.getElementById('errorMsg').textContent = '';
+      document.getElementById('result').style.display = 'none';
+
+      const amount = parseInt(document.getElementById('amount').value, 10);
+      const name = document.getElementById('name').value.trim();
+      const district = document.getElementById('district').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      if (isNaN(amount) || amount < 200000) {
+        document.getElementById('errorMsg').textContent = 'Giá trị đơn hàng phải từ 200.000 VND!';
+        return;
+      }
+      if (!/^0\d{9}$/.test(phone)) {
+        document.getElementById('errorMsg').textContent = 'Số điện thoại không hợp lệ!';
+        return;
+      }
+      if (!name || !district) {
+        document.getElementById('errorMsg').textContent = 'Vui lòng nhập đầy đủ thông tin!';
+        return;
+      }
+
+      let prize = drawPrize();
+      if (!prize) {
+        document.getElementById('errorMsg').textContent = 'Xin lỗi, tất cả quà đã được phát hết!';
+        return;
+      }
+
+      let left = getPrizeLeft();
+      left[prize.key]--;
+      setPrizeLeft(left);
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang gửi...';
+
+      try {
+        let res = await fetch(scriptURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, district, phone, amount, reward: prize.name })
+        });
+        if (!res.ok) throw new Error('Không gửi được dữ liệu');
+        document.getElementById('result').innerHTML = `Chúc mừng bạn nhận được: <b>${prize.name}</b>`;
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('luckyForm').reset();
+      } catch (err) {
+        document.getElementById('errorMsg').textContent = 'Có lỗi khi gửi dữ liệu, hãy thử lại!';
+        left[prize.key]++;
+        setPrizeLeft(left);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Bốc thăm';
+      }
+    });
+  </script>
+</body>
+</html>
